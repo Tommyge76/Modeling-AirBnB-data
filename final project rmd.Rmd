@@ -1,0 +1,316 @@
+---
+title: "STAT 420 Final Project"
+author: "Tommy"
+date: "5/7/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Methods
+
+We first began by loading in the dataset. We cleaned the data first by removing any "NA" data points or observations that were empty. We also removed observations where the price was 0 was this does not make sense and can affect our models if we want to use transformations later. We also checked to see if our categorical variable, the "neighbourhood_group", was a factor.
+
+```{R}
+#Simple linear regression
+airbnb <- read.csv("C:/Users/Tommy Ge/Desktop/Junior year semester 2/STAT 420 final project/AB_NYC_2019.csv")
+#str(airbnb$neighbourhood_group)
+is.factor(airbnb$neighbourhood_group)
+airbnb <- airbnb[!apply(is.na(airbnb$number_of_reviews) | airbnb == "", 1, all),]
+airbnb <- airbnb[!apply(is.na(airbnb$price) | airbnb == "" | airbnb$price == 0, 1, all),]
+
+levels(airbnb$neighbourhood_group)
+```
+
+After loading in and cleaning our data, we first made a simple linear regression model and plotted that to see how our data looked.
+
+```{R}
+airbnb_model = lm(price ~ number_of_reviews, data = airbnb)
+plot(price ~ number_of_reviews, data = airbnb, main = "Price vs Number of reviews")
+abline(airbnb_model, lwd = 3, col = "red")
+```
+
+
+After plotting the simple model, we saw there were lots of data points and saw a general downward trend between price and number of reviews. Next, we used our categorical variable to split the data points into respective neighborhoods such as Bronx, Brooklyn, Manhattan, Queens, and Staten Island.
+
+
+```{R}
+plot_col = c("red", "darkseagreen", "blue", "darkgoldenrod1", "black")
+plot(price ~ number_of_reviews, data = airbnb, col = plot_col[neighbourhood_group], pch = as.numeric(neighbourhood_group))
+
+legend("topright", c("Bronx", "Brooklyn", "Manhattan", "Queens", "Staten Island"), col = plot_col, pch = c(1, 2, 3))
+abline(airbnb_model, lwd = 3, col = "magenta")
+
+```
+
+
+After plotting this, we saw that this points were hard to see. We then created an additive model to predict price based on number of reviews and neighborhood group. We plotted this additive model which is shown below.
+
+```{R}
+(airbnb_add_model = lm(price ~ number_of_reviews + neighbourhood_group, data = airbnb))
+```
+
+
+
+
+```{R}
+int_Bronx = coef(airbnb_add_model)[1]
+int_Brooklyn = coef(airbnb_add_model)[1] + coef(airbnb_add_model)[3]
+int_Manhattan = coef(airbnb_add_model)[1] + coef(airbnb_add_model)[4]
+int_Queens = coef(airbnb_add_model)[1] + coef(airbnb_add_model)[5]
+int_Staten_Island = coef(airbnb_add_model)[1] + coef(airbnb_add_model)[6]
+
+slope_all_neighborhoods = coef(airbnb_add_model)[2]
+
+
+plot_colors = c("darkgoldenrod1", "cyan1", "firebrick3", "darkseagreen3", "sienna1")
+plot(price ~ number_of_reviews, data = airbnb, col = plot_colors[neighbourhood_group], pch = as.numeric(neighbourhood_group),xlim=c(0,30),
+ylim=c(0,300))
+abline(int_Bronx, slope_all_neighborhoods, col = plot_colors[1], lty = 1, lwd = 2)
+abline(int_Brooklyn, slope_all_neighborhoods, col = plot_colors[2], lty = 2, lwd = 2)
+abline(int_Manhattan, slope_all_neighborhoods, col = plot_colors[3], lty = 3, lwd = 2)
+abline(int_Queens, slope_all_neighborhoods, col = plot_colors[4], lty = 4, lwd = 2)
+abline(int_Staten_Island, slope_all_neighborhoods, col = plot_colors[5], lty = 5, lwd = 2)
+legend("topright", c("Bronx", "Brooklyn", "Manhattan", "Queens", "Staten Island"), col = plot_colors, lty = c(1, 2, 3, 4, 5), pch = c(1, 2, 3, 4, 5))
+
+plot(price ~ number_of_reviews, data = airbnb, col = "white", pch = as.numeric(neighbourhood_group),xlim=c(0,30), ylim=c(0,300))
+abline(int_Bronx, slope_all_neighborhoods, col = plot_colors[1], lty = 1, lwd = 2)
+abline(int_Brooklyn, slope_all_neighborhoods, col = plot_colors[2], lty = 2, lwd = 2)
+abline(int_Manhattan, slope_all_neighborhoods, col = plot_colors[3], lty = 3, lwd = 2)
+abline(int_Queens, slope_all_neighborhoods, col = plot_colors[4], lty = 4, lwd = 2)
+abline(int_Staten_Island, slope_all_neighborhoods, col = plot_colors[5], lty = 5, lwd = 2)
+
+legend("topright", c("Bronx", "Brooklyn", "Manhattan", "Queens", "Staten Island"), col = plot_colors, lty = c(1, 2, 3, 4, 5), pch = c(1, 2, 3, 4, 5))
+```
+
+
+The graph with no points shows the lines that model the observations for each neighborhood group. The points were intentionally colored white to show the lines. Next, we made an interaction model. An interaction model was made to compare an additive model vs the interaction model.
+
+```{R}
+(airbnb_int_model = lm(price ~ number_of_reviews * neighbourhood_group, data = airbnb))
+summary(airbnb_int_model)
+```
+
+```{R}
+anova(airbnb_add_model, airbnb_int_model)
+```
+
+We then did an ANOVA test on the additive model and the interaction model. The p-value was small, so the interaction model is preferred in this case.
+
+
+Next, we decided because we had other variables, we would create bigger models. We first created an interaction plot shown below. 
+
+```{R}
+int2_Bronx = coef(airbnb_int_model)[1]
+int2_Brooklyn = coef(airbnb_int_model)[1] + coef(airbnb_int_model)[3]
+int2_Manhattan = coef(airbnb_int_model)[1] + coef(airbnb_int_model)[4]
+int2_Queens = coef(airbnb_int_model)[1] + coef(airbnb_int_model)[5]
+int2_Staten_Island = coef(airbnb_int_model)[1] + coef(airbnb_int_model)[6]
+
+slope_Bronx = coef(airbnb_int_model)[2]
+slope_Brooklyn = coef(airbnb_int_model)[2] + coef(airbnb_int_model)[7]
+slope_Manhattan = coef(airbnb_int_model)[2] + coef(airbnb_int_model)[8]
+slope_Queens = coef(airbnb_int_model)[2] + coef(airbnb_int_model)[9]
+slope_Staten_Island = coef(airbnb_int_model)[2] + coef(airbnb_int_model)[10]
+  
+plot_colors = c("darkgoldenrod1", "cyan1", "firebrick3", "darkseagreen3", "sienna1")
+plot(price ~ number_of_reviews, data = airbnb, col = plot_colors[neighbourhood_group], pch = as.numeric(neighbourhood_group))
+abline(int2_Bronx, slope_Bronx, col = plot_colors[1], lty = 1, lwd = 2)
+abline(int2_Brooklyn, slope_Brooklyn, col = plot_colors[2], lty = 2, lwd = 2)
+abline(int2_Manhattan, slope_Manhattan, col = plot_colors[3], lty = 3, lwd = 2)
+abline(int2_Queens, slope_Queens, col = plot_colors[4], lty = 4, lwd = 2)
+abline(int2_Staten_Island, slope_Staten_Island, col = plot_colors[5], lty = 5, lwd = 2)
+legend("topright", c("Bronx", "Brooklyn", "Manhattan", "Queens", "Staten Island"), col = plot_colors, lty = c(1, 2, 3, 4, 5), pch = c(1, 2, 3, 4, 5))
+
+
+plot_colors = c("darkgoldenrod1", "cyan1", "firebrick3", "darkseagreen3", "sienna1")
+plot(price ~ number_of_reviews, data = airbnb, col = "white", pch = as.numeric(neighbourhood_group), xlim=c(0,30), ylim=c(0,300))
+abline(int2_Bronx, slope_Bronx, col = plot_colors[1], lty = 1, lwd = 2)
+abline(int2_Brooklyn, slope_Brooklyn, col = plot_colors[2], lty = 2, lwd = 2)
+abline(int2_Manhattan, slope_Manhattan, col = plot_colors[3], lty = 3, lwd = 2)
+abline(int2_Queens, slope_Queens, col = plot_colors[4], lty = 4, lwd = 2)
+abline(int2_Staten_Island, slope_Staten_Island, col = plot_colors[5], lty = 5, lwd = 2)
+
+legend("topright", c("Bronx", "Brooklyn", "Manhattan", "Queens", "Staten Island"), col = plot_colors, lty = c(1, 2, 3, 4, 5), pch = c(1, 2, 3, 4, 5))
+```
+
+
+The plot barely changed from the additive model. Next, we created a big model by making an interaction with all the variables in our data set. We also made a smaller model with no interaction between every single variable to comapre as the null model.
+
+
+```{R}
+airbnb_big_model = lm(price ~ number_of_reviews * neighbourhood_group * reviews_per_month * minimum_nights * calculated_host_listings_count * availability_365, data = airbnb)
+```
+
+```{R}
+airbnb_two_way_int_model = lm(price ~ (number_of_reviews + neighbourhood_group + reviews_per_month + minimum_nights + calculated_host_listings_count + availability_365) ^ 2, data = airbnb)
+```
+
+We did an ANOVA test on the big model and the smaller null model.
+
+```{R}
+anova(airbnb_big_model, airbnb_two_way_int_model)
+```
+
+As we see, the p-value is small, so we prefer the big model.
+
+```{R}
+mean(resid(airbnb_big_model) ^ 2)
+
+mean(resid(airbnb_two_way_int_model) ^ 2)
+
+```
+
+The residual for the big model is also smaller. Next we tried transformations on the airbnb_int_model from earlier and the airbnb_big_model to see if those models fit better.
+
+
+```{R}
+airbnb_log = lm(log(price) ~ number_of_reviews*neighbourhood_group, data = airbnb)
+
+```
+
+```{R}
+airbnb_log_big_model = lm(log(price) ~ number_of_reviews * neighbourhood_group * reviews_per_month * minimum_nights * calculated_host_listings_count * availability_365, data = airbnb)
+```
+
+Then we did some tests on the four models: airbnb_int_model, airbnb_big_model, airbnb_log, and airbnb_log_big_model.
+
+The graphs below are testing for linearity and normality of errors.
+
+```{R}
+par(mfrow = c(1, 2))
+
+plot(fitted(airbnb_int_model), resid(airbnb_int_model), col = "grey", pch = 20, xlab = "Fitted", ylab = "Residuals", main = "Fitted versus Residuals")
+abline(h = 0, col = "darkorange", lwd = 2)
+
+qqnorm(resid(airbnb_int_model), main = "Normal Q-Q Plot", col = "darkgrey")
+qqline(resid(airbnb_int_model), col = "dodgerblue", lwd = 2)
+```
+
+```{R}
+par(mfrow = c(1, 2))
+
+plot(fitted(airbnb_log), resid(airbnb_log), col = "grey", pch = 20, xlab = "Fitted", ylab = "Residuals", main = "Fitted versus Residuals")
+abline(h = 0, col = "darkorange", lwd = 2)
+
+qqnorm(resid(airbnb_log), main = "Normal Q-Q Plot", col = "darkgrey")
+qqline(resid(airbnb_log), col = "dodgerblue", lwd = 2)
+```
+
+```{R}
+par(mfrow = c(1, 2))
+
+plot(fitted(airbnb_big_model), resid(airbnb_big_model), col = "grey", pch = 20, xlab = "Fitted", ylab = "Residuals", main = "Fitted versus Residuals")
+abline(h = 0, col = "darkorange", lwd = 2)
+
+qqnorm(resid(airbnb_big_model), main = "Normal Q-Q Plot", col = "darkgrey")
+qqline(resid(airbnb_big_model), col = "dodgerblue", lwd = 2)
+```
+
+```{R}
+par(mfrow = c(1, 2))
+
+plot(fitted(airbnb_log_big_model), resid(airbnb_log_big_model), col = "grey", pch = 20, xlab = "Fitted", ylab = "Residuals", main = "Fitted versus Residuals")
+abline(h = 0, col = "darkorange", lwd = 2)
+
+qqnorm(resid(airbnb_log_int_reduced), main = "Normal Q-Q Plot", col = "darkgrey")
+qqline(resid(airbnb_log_int_reduced), col = "dodgerblue", lwd = 2)
+```
+
+
+```{R}
+library(lmtest)
+
+bptest(airbnb_int_model)
+bptest(airbnb_log)
+bptest(airbnb_int_model_reduced)
+bptest(airbnb_log_int_reduced)
+```
+
+None of the models pass the normality of errors or linearity assumption.
+
+
+* Normality of Errors
+```{R}
+par(mfrow = c(1, 4))
+hist(resid(airbnb_int_model),
+     xlab   = "Residuals",
+     main   = "Histogram of Residuals",
+     col    = "darkorange",
+     border = "dodgerblue",
+     breaks = 20)
+hist(resid(airbnb_log),
+     xlab   = "Residuals",
+     main   = "Histogram of Residuals",
+     col    = "darkorange",
+     border = "dodgerblue",
+     breaks = 20)
+hist(resid(airbnb_big_model),
+     xlab   = "Residuals",
+     main   = "Histogram of Residuals",
+     col    = "darkorange",
+     border = "dodgerblue",
+     breaks = 20)
+hist(resid(airbnb_log_big_model),
+     xlab   = "Residuals",
+     main   = "Histogram of Residuals",
+     col    = "darkorange",
+     border = "dodgerblue",
+     breaks = 20)
+
+```
+
+
+We see from the histograms, airbnb_log and airbnb_log_big_model show a normal distribution in their residuals. Next we see the RMSE for each model. 
+
+
+```{R}
+calc_rmse = function(model) {
+sqrt(mean((resid(model) / (1 - hatvalues(model))) ^ 2))
+}
+calc_rmse(airbnb_int_model)
+calc_rmse(airbnb_log)
+calc_rmse(airbnb_big_model)
+calc_rmse(airbnb_log_big_model)
+```
+
+The model airbnb_log_big_model has the lowest RMSE.
+
+
+
+## Results
+We chose **airbnb_log_big_model** as our final model.
+
+```{R}
+airbnb_log_big_model = lm(log(price) ~ number_of_reviews * neighbourhood_group * reviews_per_month * minimum_nights * calculated_host_listings_count * availability_365, data = airbnb)
+```
+
+This model had residuals that were normally distributed and had the lowest RMSE.
+
+```{R}
+
+hist(resid(airbnb_log_big_model),
+     xlab   = "Residuals",
+     main   = "Histogram of Residuals",
+     col    = "darkorange",
+     border = "dodgerblue",
+     breaks = 20)
+
+
+
+```
+
+
+A plot of the model with the log transformation is shown below.
+```{R}
+airbnb_log_big_model = lm(log(price) ~ number_of_reviews * neighbourhood_group * reviews_per_month * minimum_nights * calculated_host_listings_count * availability_365, data = airbnb)
+plot(log(price) ~ number_of_reviews, data = airbnb)
+abline(airbnb_log_big_model, col = "red", lwd = 2)
+```
+
+
+
+
